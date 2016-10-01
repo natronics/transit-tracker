@@ -1,70 +1,73 @@
-/*
- *  Simple HTTP get webclient test
- */
+// Demo the quad alphanumeric display LED backpack kit
+// scrolls through every character, then scrolls Serial
+// input onto the display
 
-#include <ESP8266WiFi.h>
-#include "connection.h"
+#include <Wire.h>
+#include "Adafruit_LEDBackpack.h"
+#include "Adafruit_GFX.h"
 
-const char* host = "wifitest.adafruit.com";
+Adafruit_AlphaNum4 alpha4 = Adafruit_AlphaNum4();
 
 void setup() {
-  Serial.begin(115200);
-  delay(100);
-
-  // We start by connecting to a WiFi network
-
-  Serial.println();
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(SSID);
+  Serial.begin(9600);
   
-  WiFi.begin(SSID, PASSWD);
+  alpha4.begin(0x70);  // pass in the address
+
+  alpha4.writeDigitRaw(3, 0x0);
+  alpha4.writeDigitRaw(0, 0xFFFF);
+  alpha4.writeDisplay();
+  delay(200);
+  alpha4.writeDigitRaw(0, 0x0);
+  alpha4.writeDigitRaw(1, 0xFFFF);
+  alpha4.writeDisplay();
+  delay(200);
+  alpha4.writeDigitRaw(1, 0x0);
+  alpha4.writeDigitRaw(2, 0xFFFF);
+  alpha4.writeDisplay();
+  delay(200);
+  alpha4.writeDigitRaw(2, 0x0);
+  alpha4.writeDigitRaw(3, 0xFFFF);
+  alpha4.writeDisplay();
+  delay(200);
   
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  alpha4.clear();
+  alpha4.writeDisplay();
+
+  // display every character, 
+  for (uint8_t i='!'; i<='z'; i++) {
+    alpha4.writeDigitAscii(0, i);
+    alpha4.writeDigitAscii(1, i+1);
+    alpha4.writeDigitAscii(2, i+2);
+    alpha4.writeDigitAscii(3, i+3);
+    alpha4.writeDisplay();
+    
+    delay(300);
   }
-
-  Serial.println("");
-  Serial.println("WiFi connected");  
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+  Serial.println("Start typing to display!");
 }
 
-int value = 0;
+
+char displaybuffer[4] = {' ', ' ', ' ', ' '};
 
 void loop() {
-  delay(5000);
-  ++value;
-
-  Serial.print("connecting to ");
-  Serial.println(host);
+  while (! Serial.available()) return;
   
-  // Use WiFiClient class to create TCP connections
-  WiFiClient client;
-  const int httpPort = 80;
-  if (!client.connect(host, httpPort)) {
-    Serial.println("connection failed");
-    return;
-  }
+  char c = Serial.read();
+  if (! isprint(c)) return; // only printable!
   
-  // We now create a URI for the request
-  String url = "/testwifi/index.html";
-  Serial.print("Requesting URL: ");
-  Serial.println(url);
-  
-  // This will send the request to the server
-  client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-               "Host: " + host + "\r\n" + 
-               "Connection: close\r\n\r\n");
-  delay(500);
-  
-  // Read all the lines of the reply from server and print them to Serial
-  while(client.available()){
-    String line = client.readStringUntil('\r');
-    Serial.print(line);
-  }
-  
-  Serial.println();
-  Serial.println("closing connection");
+  // scroll down display
+  displaybuffer[0] = displaybuffer[1];
+  displaybuffer[1] = displaybuffer[2];
+  displaybuffer[2] = displaybuffer[3];
+  displaybuffer[3] = c;
+ 
+  // set every digit to the buffer
+  alpha4.writeDigitAscii(0, displaybuffer[0]);
+  alpha4.writeDigitAscii(1, displaybuffer[1]);
+  alpha4.writeDigitAscii(2, displaybuffer[2]);
+  alpha4.writeDigitAscii(3, displaybuffer[3]);
+ 
+  // write it out!
+  alpha4.writeDisplay();
+  delay(200);
 }
