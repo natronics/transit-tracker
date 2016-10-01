@@ -3,7 +3,7 @@
  */
 
 #include <ESP8266WiFi.h>
-#include <connection.h>
+#include "connection.h"
 
 const char* host = "wifitest.adafruit.com";
 
@@ -16,7 +16,7 @@ void setup() {
   Serial.println();
   Serial.println();
   Serial.print("Connecting to ");
-  Serial.println(ssid);
+  Serial.println(SSID);
   
   WiFi.begin(SSID, PASSWD);
   
